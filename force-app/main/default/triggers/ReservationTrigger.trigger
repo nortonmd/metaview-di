@@ -4,33 +4,35 @@
 
 trigger ReservationTrigger on Reservation__c (before insert, before update, after insert, after update) {
 
-	System.debug( 'ReservationTrigger - START');
-
-	if ( Trigger.isBefore ) {
-		System.debug( 'Before');
-	} else {
-		System.debug( 'After');
-	}
-
-	if ( Trigger.isInsert ) {
-		System.debug( 'Insert');
-	} else {
-		System.debug( 'Update');
-	}
+	System.debug( 'ReservationTrigger - START' );
 
 	List<Reservation_Trigger_Handler__mdt> reservationTriggerHandlers = [
-			SELECT
-					DeveloperName,
-					Id,
-					Is_Active__c,
-					Label,
-					Language,
-					MasterLabel,
-					NamespacePrefix,
-					QualifiedApiName,
-					Trigger_Handler_Class__c
-			FROM Reservation_Trigger_Handler__mdt];
-	System.debug( 'Number of Trigger Handlers is [' + reservationTriggerHandlers.size() +']' );
+			SELECT Trigger_Handler_Class__c
+			FROM Reservation_Trigger_Handler__mdt
+			WHERE Is_Active__c = TRUE
+	];
+	System.debug( 'Number of Trigger Handlers is [' + reservationTriggerHandlers.size() + ']' );
 
-	System.debug( 'ReservationTrigger - END');
+	for ( Reservation_Trigger_Handler__mdt reservationTriggerHandler : reservationTriggerHandlers ) {
+
+		ReservationTriggerHandler triggerHandler = ( ReservationTriggerHandler ) ReservationHandlerInjector.instantiate( reservationTriggerHandler.Trigger_Handler_Class__c );
+		if ( Trigger.isBefore && Trigger.isInsert ) {
+			System.debug( 'Before Insert' );
+			triggerHandler.handleBeforeInsert( Trigger.new);
+		} else if ( Trigger.isBefore && Trigger.isUpdate ) {
+			System.debug( 'Before Update' );
+			triggerHandler.handleBeforeUpdate( Trigger.newMap, Trigger.oldMap);
+		} else if ( Trigger.isAfter && Trigger.isInsert ) {
+			System.debug( 'After Insert' );
+			triggerHandler.handleAfterInsert( Trigger.new);
+		} else if ( Trigger.isAfter && Trigger.isUpdate ) {
+			System.debug( 'After Update' );
+			triggerHandler.handleAfterUpdate( Trigger.newMap, Trigger.oldMap);
+		} else {
+			System.debug( 'Not a valid scenario');
+		}
+
+	}
+	System.debug( 'ReservationTrigger - END' );
+
 }
